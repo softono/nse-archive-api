@@ -5,6 +5,8 @@ export interface IndexCloseRow {
   low?: number;
   close: number;
   volume?: number;
+  pointsChange?: number;
+  pctChange?: number;
 }
 
 // ind_close_all_{DDMMYYYY}.csv columns: Index Name,Index Date,Open Index Value,High Index Value,
@@ -21,6 +23,8 @@ export function parseIndexCloseCsv(csvText: string): IndexCloseRow[] {
   const iLow = idx("LOW INDEX VALUE");
   const iClose = idx("CLOSING INDEX VALUE");
   const iVolume = idx("VOLUME");
+  const iPointsChange = idx("POINTS CHANGE");
+  const iPctChange = idx("CHANGE(%)");
 
   if (iName < 0 || iClose < 0) {
     throw new Error("ind_close_all CSV missing expected columns — header may have changed");
@@ -39,6 +43,14 @@ export function parseIndexCloseCsv(csvText: string): IndexCloseRow[] {
       low: iLow >= 0 ? Number(cols[iLow]) || undefined : undefined,
       close,
       volume: iVolume >= 0 ? Number(cols[iVolume]) || undefined : undefined,
+      pointsChange:
+        iPointsChange >= 0 && Number.isFinite(Number(cols[iPointsChange]))
+          ? Number(cols[iPointsChange])
+          : undefined,
+      pctChange:
+        iPctChange >= 0 && Number.isFinite(Number(cols[iPctChange]))
+          ? Number(cols[iPctChange])
+          : undefined,
     });
   }
   return out;

@@ -8,6 +8,13 @@
       "when": 1786680966251,
       "tag": "20260814041606_goofy_junta",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786719411060,
+      "tag": "20260814145651_boring_black_tom",
+      "breakpoints": true
     }
   ]
 }

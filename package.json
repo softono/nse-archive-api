@@ -1,0 +1,36 @@
+{
+  "name": "nse-archive",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/server.ts",
+    "start": "tsx --env-file=.env src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx --env-file=.env node_modules/drizzle-kit/bin.cjs migrate",
+    "backfill": "tsx --env-file=.env src/scripts/run-backfill.ts",
+    "format": "prettier --write src"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "express": "^5.2.1",
+    "ioredis": "^5.11.1",
+    "node-cron": "^4.2.1",
+    "pino": "^10.3.1",
+    "postgres": "^3.4.9",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.0.0",
+    "@types/node-cron": "^3.0.11",
+    "drizzle-kit": "^0.31.10",
+    "prettier": "^3.9.4",
+    "tsx": "^4.22.5",
+    "typescript": "^5.9.3"
+  }
+}

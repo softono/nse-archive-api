@@ -25,7 +25,9 @@ export interface FoBhavcopyRow {
 // OpnIntrst,ChngInOpnIntrst,TtlTradgVol,TtlTrfVal,TtlNbOfTxsExctd,SsnId,NewBrdLotQty,...
 export function parseFoBhavcopyZip(zipBuffer: Buffer): FoBhavcopyRow[] {
   const zip = new AdmZip(zipBuffer);
-  const entry = zip.getEntries().find((e) => e.entryName.toLowerCase().endsWith(".csv"));
+  const entry = zip
+    .getEntries()
+    .find((e) => e.entryName.toLowerCase().endsWith(".csv"));
   if (!entry) throw new Error("FO bhavcopy zip contained no CSV entry");
   return parseFoBhavcopyCsv(entry.getData().toString("utf-8"));
 }
@@ -54,7 +56,9 @@ export function parseFoBhavcopyCsv(csvText: string): FoBhavcopyRow[] {
   const iLot = idx("NEWBRDLOTQTY");
 
   if (iSymbol < 0 || iInstrType < 0 || iExpiry < 0 || iOpen < 0 || iClose < 0) {
-    throw new Error("FO bhavcopy CSV missing expected columns — header may have changed");
+    throw new Error(
+      "FO bhavcopy CSV missing expected columns — header may have changed",
+    );
   }
 
   const out: FoBhavcopyRow[] = [];
@@ -73,12 +77,14 @@ export function parseFoBhavcopyCsv(csvText: string): FoBhavcopyRow[] {
       high: Number(cols[iHigh]),
       low: Number(cols[iLow]),
       close: Number(cols[iClose]),
-      settlePrice: iSettle >= 0 ? Number(cols[iSettle]) || undefined : undefined,
+      settlePrice:
+        iSettle >= 0 ? Number(cols[iSettle]) || undefined : undefined,
       openInterest: iOi >= 0 ? Number(cols[iOi]) || undefined : undefined,
       changeInOi: iChgOi >= 0 ? Number(cols[iChgOi]) || undefined : undefined,
       volume: Number(cols[iVolume]) || 0,
       tradedValue: iValue >= 0 ? Number(cols[iValue]) || undefined : undefined,
-      tradesCount: iTrades >= 0 ? Number(cols[iTrades]) || undefined : undefined,
+      tradesCount:
+        iTrades >= 0 ? Number(cols[iTrades]) || undefined : undefined,
       lotSize: iLot >= 0 ? Number(cols[iLot]) || undefined : undefined,
     });
   }

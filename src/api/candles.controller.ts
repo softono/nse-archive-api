@@ -55,7 +55,10 @@ export async function getCandles(req: Request, res: Response): Promise<void> {
   res.json(payload);
 }
 
-export async function getIndexCandles(req: Request, res: Response): Promise<void> {
+export async function getIndexCandles(
+  req: Request,
+  res: Response,
+): Promise<void> {
   const indexName = String(req.query.index ?? "");
   const from = String(req.query.from ?? "");
   const to = String(req.query.to ?? "");
@@ -96,10 +99,14 @@ export async function getFoCandles(req: Request, res: Response): Promise<void> {
   const symbol = String(req.query.symbol ?? "").toUpperCase();
   const from = String(req.query.from ?? "");
   const to = String(req.query.to ?? "");
-  const instrumentType = req.query.instrumentType ? String(req.query.instrumentType) : undefined;
+  const instrumentType = req.query.instrumentType
+    ? String(req.query.instrumentType)
+    : undefined;
   const expiry = req.query.expiry ? String(req.query.expiry) : undefined;
   const strike = req.query.strike ? String(req.query.strike) : undefined;
-  const optionType = req.query.optionType ? String(req.query.optionType).toUpperCase() : undefined;
+  const optionType = req.query.optionType
+    ? String(req.query.optionType).toUpperCase()
+    : undefined;
 
   if (!symbol || !from || !to) {
     res.status(400).json({ error: "symbol, from, and to are required" });
@@ -111,7 +118,8 @@ export async function getFoCandles(req: Request, res: Response): Promise<void> {
     gte(foDailyCandles.tradeDate, from),
     lte(foDailyCandles.tradeDate, to),
   ];
-  if (instrumentType) conditions.push(eq(foDailyCandles.instrumentType, instrumentType));
+  if (instrumentType)
+    conditions.push(eq(foDailyCandles.instrumentType, instrumentType));
   if (expiry) conditions.push(eq(foDailyCandles.expiryDate, expiry));
   if (strike) conditions.push(eq(foDailyCandles.strikePrice, strike));
   if (optionType) conditions.push(eq(foDailyCandles.optionType, optionType));

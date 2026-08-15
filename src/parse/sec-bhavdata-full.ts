@@ -35,7 +35,9 @@ export function parseSecBhavdataCsv(csvText: string): SecBhavdataRow[] {
   const iDelivPct = idx("DELIV_PER");
 
   if (iSymbol < 0 || iOpen < 0 || iHigh < 0 || iLow < 0 || iClose < 0) {
-    throw new Error("sec_bhavdata_full CSV missing expected OHLC columns — header may have changed");
+    throw new Error(
+      "sec_bhavdata_full CSV missing expected OHLC columns — header may have changed",
+    );
   }
 
   const out: SecBhavdataRow[] = [];
@@ -45,16 +47,20 @@ export function parseSecBhavdataCsv(csvText: string): SecBhavdataRow[] {
     out.push({
       symbol: cols[iSymbol],
       series: iSeries >= 0 ? cols[iSeries] : "",
-      prevClose: iPrevClose >= 0 ? Number(cols[iPrevClose]) || undefined : undefined,
+      prevClose:
+        iPrevClose >= 0 ? Number(cols[iPrevClose]) || undefined : undefined,
       open: Number(cols[iOpen]),
       high: Number(cols[iHigh]),
       low: Number(cols[iLow]),
       close: Number(cols[iClose]),
       volume: Number(cols[iVolume]) || 0,
       tradedValue: iValue >= 0 ? Number(cols[iValue]) * 100000 : undefined, // lacs -> rupees
-      tradesCount: iTrades >= 0 ? Number(cols[iTrades]) || undefined : undefined,
-      deliveryQty: iDelivQty >= 0 ? Number(cols[iDelivQty]) || undefined : undefined,
-      deliveryPct: iDelivPct >= 0 ? Number(cols[iDelivPct]) || undefined : undefined,
+      tradesCount:
+        iTrades >= 0 ? Number(cols[iTrades]) || undefined : undefined,
+      deliveryQty:
+        iDelivQty >= 0 ? Number(cols[iDelivQty]) || undefined : undefined,
+      deliveryPct:
+        iDelivPct >= 0 ? Number(cols[iDelivPct]) || undefined : undefined,
     });
   }
   return out;

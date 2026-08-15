@@ -9,7 +9,10 @@ import {
 import { fetchSecBhavdataFull } from "@/fetch/bhavcopy";
 import { fetchIndexClose } from "@/fetch/indices";
 import { fetchFoBhavcopy } from "@/fetch/fo-bhavcopy";
-import { fetchParticipantOi, fetchParticipantVolume } from "@/fetch/participant-activity";
+import {
+  fetchParticipantOi,
+  fetchParticipantVolume,
+} from "@/fetch/participant-activity";
 import { fetchBulkDeals, fetchBlockDeals } from "@/fetch/deals";
 import { NseNotFoundError } from "@/fetch/nse-client";
 import { logIngestion } from "@/ingest/ingestion-log";
@@ -26,12 +29,19 @@ const SOURCE_BLOCK_DEALS = "nse_block_deals";
 /** Ingests one calendar day of full-market daily candles. A 404 means NSE didn't publish for this
  * date (weekend/holiday) — logged as 'no_trading_day', not an error, per the PRD's holiday-
  * handling policy (no second holiday calendar maintained here). */
-export async function ingestDailyCandles(tradeDate: string): Promise<{ rowsWritten: number }> {
+export async function ingestDailyCandles(
+  tradeDate: string,
+): Promise<{ rowsWritten: number }> {
   try {
     const { rows } = await fetchSecBhavdataFull(tradeDate);
     let written = 0;
     for (const row of rows) {
-      if (!row.symbol || !Number.isFinite(row.open) || !Number.isFinite(row.close)) continue;
+      if (
+        !row.symbol ||
+        !Number.isFinite(row.open) ||
+        !Number.isFinite(row.close)
+      )
+        continue;
       await db
         .insert(dailyCandles)
         .values({
@@ -44,46 +54,77 @@ export async function ingestDailyCandles(tradeDate: string): Promise<{ rowsWritt
           close: String(row.close),
           prevClose: row.prevClose != null ? String(row.prevClose) : undefined,
           volume: Math.round(row.volume),
-          tradedValue: row.tradedValue != null ? String(row.tradedValue) : undefined,
+          tradedValue:
+            row.tradedValue != null ? String(row.tradedValue) : undefined,
           tradesCount: row.tradesCount,
-          deliveryQty: row.deliveryQty != null ? Math.round(row.deliveryQty) : undefined,
-          deliveryPct: row.deliveryPct != null ? String(row.deliveryPct) : undefined,
+          deliveryQty:
+            row.deliveryQty != null ? Math.round(row.deliveryQty) : undefined,
+          deliveryPct:
+            row.deliveryPct != null ? String(row.deliveryPct) : undefined,
           source: SOURCE_CANDLES,
         })
         .onConflictDoUpdate({
-          target: [dailyCandles.symbol, dailyCandles.series, dailyCandles.tradeDate],
+          target: [
+            dailyCandles.symbol,
+            dailyCandles.series,
+            dailyCandles.tradeDate,
+          ],
           set: {
             open: String(row.open),
             high: String(row.high),
             low: String(row.low),
             close: String(row.close),
-            prevClose: row.prevClose != null ? String(row.prevClose) : undefined,
+            prevClose:
+              row.prevClose != null ? String(row.prevClose) : undefined,
             volume: Math.round(row.volume),
-            tradedValue: row.tradedValue != null ? String(row.tradedValue) : undefined,
+            tradedValue:
+              row.tradedValue != null ? String(row.tradedValue) : undefined,
             tradesCount: row.tradesCount,
-            deliveryQty: row.deliveryQty != null ? Math.round(row.deliveryQty) : undefined,
-            deliveryPct: row.deliveryPct != null ? String(row.deliveryPct) : undefined,
+            deliveryQty:
+              row.deliveryQty != null ? Math.round(row.deliveryQty) : undefined,
+            deliveryPct:
+              row.deliveryPct != null ? String(row.deliveryPct) : undefined,
             source: SOURCE_CANDLES,
           },
         });
       written += 1;
     }
-    await logIngestion({ source: SOURCE_CANDLES, tradeDate, status: "ok", rowsWritten: written });
-    infoLog("daily candles ingested", { tradeDate, rowsParsed: rows.length, written });
+    await logIngestion({
+      source: SOURCE_CANDLES,
+      tradeDate,
+      status: "ok",
+      rowsWritten: written,
+    });
+    infoLog("daily candles ingested", {
+      tradeDate,
+      rowsParsed: rows.length,
+      written,
+    });
     return { rowsWritten: written };
   } catch (err) {
     if (err instanceof NseNotFoundError) {
-      await logIngestion({ source: SOURCE_CANDLES, tradeDate, status: "no_trading_day" });
+      await logIngestion({
+        source: SOURCE_CANDLES,
+        tradeDate,
+        status: "no_trading_day",
+      });
       return { rowsWritten: 0 };
     }
     const message = err instanceof Error ? err.message : String(err);
-    await logIngestion({ source: SOURCE_CANDLES, tradeDate, status: "failed", error: message });
+    await logIngestion({
+      source: SOURCE_CANDLES,
+      tradeDate,
+      status: "failed",
+      error: message,
+    });
     warningLog("daily candles ingest failed", { tradeDate, error: message });
     throw err;
   }
 }
 
-export async function ingestDailyIndexClose(tradeDate: string): Promise<{ rowsWritten: number }> {
+export async function ingestDailyIndexClose(
+  tradeDate: string,
+): Promise<{ rowsWritten: number }> {
   try {
     const { rows } = await fetchIndexClose(tradeDate);
     let written = 0;
@@ -99,7 +140,8 @@ export async function ingestDailyIndexClose(tradeDate: string): Promise<{ rowsWr
           low: row.low != null ? String(row.low) : undefined,
           close: String(row.close),
           volume: row.volume != null ? Math.round(row.volume) : undefined,
-          pointsChange: row.pointsChange != null ? String(row.pointsChange) : undefined,
+          pointsChange:
+            row.pointsChange != null ? String(row.pointsChange) : undefined,
           pctChange: row.pctChange != null ? String(row.pctChange) : undefined,
         })
         .onConflictDoUpdate({
@@ -110,22 +152,42 @@ export async function ingestDailyIndexClose(tradeDate: string): Promise<{ rowsWr
             low: row.low != null ? String(row.low) : undefined,
             close: String(row.close),
             volume: row.volume != null ? Math.round(row.volume) : undefined,
-            pointsChange: row.pointsChange != null ? String(row.pointsChange) : undefined,
-            pctChange: row.pctChange != null ? String(row.pctChange) : undefined,
+            pointsChange:
+              row.pointsChange != null ? String(row.pointsChange) : undefined,
+            pctChange:
+              row.pctChange != null ? String(row.pctChange) : undefined,
           },
         });
       written += 1;
     }
-    await logIngestion({ source: SOURCE_INDICES, tradeDate, status: "ok", rowsWritten: written });
-    infoLog("index close ingested", { tradeDate, rowsParsed: rows.length, written });
+    await logIngestion({
+      source: SOURCE_INDICES,
+      tradeDate,
+      status: "ok",
+      rowsWritten: written,
+    });
+    infoLog("index close ingested", {
+      tradeDate,
+      rowsParsed: rows.length,
+      written,
+    });
     return { rowsWritten: written };
   } catch (err) {
     if (err instanceof NseNotFoundError) {
-      await logIngestion({ source: SOURCE_INDICES, tradeDate, status: "no_trading_day" });
+      await logIngestion({
+        source: SOURCE_INDICES,
+        tradeDate,
+        status: "no_trading_day",
+      });
       return { rowsWritten: 0 };
     }
     const message = err instanceof Error ? err.message : String(err);
-    await logIngestion({ source: SOURCE_INDICES, tradeDate, status: "failed", error: message });
+    await logIngestion({
+      source: SOURCE_INDICES,
+      tradeDate,
+      status: "failed",
+      error: message,
+    });
     warningLog("index close ingest failed", { tradeDate, error: message });
     throw err;
   }
@@ -133,12 +195,19 @@ export async function ingestDailyIndexClose(tradeDate: string): Promise<{ rowsWr
 
 /** F&O daily bhavcopy — OHLC, open interest, change in OI, settlement price, and lot size all in
  * one file, per contract (future or option). */
-export async function ingestDailyFoCandles(tradeDate: string): Promise<{ rowsWritten: number }> {
+export async function ingestDailyFoCandles(
+  tradeDate: string,
+): Promise<{ rowsWritten: number }> {
   try {
     const { rows } = await fetchFoBhavcopy(tradeDate);
     let written = 0;
     for (const row of rows) {
-      if (!row.symbol || !Number.isFinite(row.open) || !Number.isFinite(row.close)) continue;
+      if (
+        !row.symbol ||
+        !Number.isFinite(row.open) ||
+        !Number.isFinite(row.close)
+      )
+        continue;
       const values = {
         symbol: row.symbol,
         instrumentType: row.instrumentType,
@@ -153,11 +222,15 @@ export async function ingestDailyFoCandles(tradeDate: string): Promise<{ rowsWri
         high: String(row.high),
         low: String(row.low),
         close: String(row.close),
-        settlePrice: row.settlePrice != null ? String(row.settlePrice) : undefined,
-        openInterest: row.openInterest != null ? Math.round(row.openInterest) : undefined,
-        changeInOi: row.changeInOi != null ? Math.round(row.changeInOi) : undefined,
+        settlePrice:
+          row.settlePrice != null ? String(row.settlePrice) : undefined,
+        openInterest:
+          row.openInterest != null ? Math.round(row.openInterest) : undefined,
+        changeInOi:
+          row.changeInOi != null ? Math.round(row.changeInOi) : undefined,
         volume: Math.round(row.volume),
-        tradedValue: row.tradedValue != null ? String(row.tradedValue) : undefined,
+        tradedValue:
+          row.tradedValue != null ? String(row.tradedValue) : undefined,
         tradesCount: row.tradesCount,
         lotSize: row.lotSize,
         source: SOURCE_FO,
@@ -178,16 +251,34 @@ export async function ingestDailyFoCandles(tradeDate: string): Promise<{ rowsWri
         });
       written += 1;
     }
-    await logIngestion({ source: SOURCE_FO, tradeDate, status: "ok", rowsWritten: written });
-    infoLog("fo candles ingested", { tradeDate, rowsParsed: rows.length, written });
+    await logIngestion({
+      source: SOURCE_FO,
+      tradeDate,
+      status: "ok",
+      rowsWritten: written,
+    });
+    infoLog("fo candles ingested", {
+      tradeDate,
+      rowsParsed: rows.length,
+      written,
+    });
     return { rowsWritten: written };
   } catch (err) {
     if (err instanceof NseNotFoundError) {
-      await logIngestion({ source: SOURCE_FO, tradeDate, status: "no_trading_day" });
+      await logIngestion({
+        source: SOURCE_FO,
+        tradeDate,
+        status: "no_trading_day",
+      });
       return { rowsWritten: 0 };
     }
     const message = err instanceof Error ? err.message : String(err);
-    await logIngestion({ source: SOURCE_FO, tradeDate, status: "failed", error: message });
+    await logIngestion({
+      source: SOURCE_FO,
+      tradeDate,
+      status: "failed",
+      error: message,
+    });
     warningLog("fo candles ingest failed", { tradeDate, error: message });
     throw err;
   }
@@ -197,7 +288,8 @@ async function ingestParticipantActivity(
   tradeDate: string,
   metric: "oi" | "volume",
 ): Promise<{ rowsWritten: number }> {
-  const source = metric === "oi" ? SOURCE_PARTICIPANT_OI : SOURCE_PARTICIPANT_VOL;
+  const source =
+    metric === "oi" ? SOURCE_PARTICIPANT_OI : SOURCE_PARTICIPANT_VOL;
   const fetcher = metric === "oi" ? fetchParticipantOi : fetchParticipantVolume;
   try {
     const { rows } = await fetcher(tradeDate);
@@ -237,8 +329,18 @@ async function ingestParticipantActivity(
         });
       written += 1;
     }
-    await logIngestion({ source, tradeDate, status: "ok", rowsWritten: written });
-    infoLog("participant activity ingested", { tradeDate, metric, rowsParsed: rows.length, written });
+    await logIngestion({
+      source,
+      tradeDate,
+      status: "ok",
+      rowsWritten: written,
+    });
+    infoLog("participant activity ingested", {
+      tradeDate,
+      metric,
+      rowsParsed: rows.length,
+      written,
+    });
     return { rowsWritten: written };
   } catch (err) {
     if (err instanceof NseNotFoundError) {
@@ -247,7 +349,11 @@ async function ingestParticipantActivity(
     }
     const message = err instanceof Error ? err.message : String(err);
     await logIngestion({ source, tradeDate, status: "failed", error: message });
-    warningLog("participant activity ingest failed", { tradeDate, metric, error: message });
+    warningLog("participant activity ingest failed", {
+      tradeDate,
+      metric,
+      error: message,
+    });
     throw err;
   }
 }
@@ -260,7 +366,9 @@ export const ingestDailyParticipantVolume = (tradeDate: string) =>
 /** Bulk/block deals — rolling current-snapshot files with no per-date archive, so this only ever
  * ingests "whatever NSE is showing right now", tagged with each row's own Date column. Not
  * backfillable; only called from the steady-state daily job, never from backfill.service.ts. */
-async function ingestDeals(dealType: "bulk" | "block"): Promise<{ rowsWritten: number }> {
+async function ingestDeals(
+  dealType: "bulk" | "block",
+): Promise<{ rowsWritten: number }> {
   const source = dealType === "bulk" ? SOURCE_BULK_DEALS : SOURCE_BLOCK_DEALS;
   const fetcher = dealType === "bulk" ? fetchBulkDeals : fetchBlockDeals;
   const today = new Date().toISOString().slice(0, 10);
@@ -268,7 +376,8 @@ async function ingestDeals(dealType: "bulk" | "block"): Promise<{ rowsWritten: n
     const { rows } = await fetcher(today);
     let written = 0;
     for (const row of rows) {
-      if (!row.symbol || !row.clientName || !Number.isFinite(row.quantity)) continue;
+      if (!row.symbol || !row.clientName || !Number.isFinite(row.quantity))
+        continue;
       await db
         .insert(deals)
         .values({
@@ -296,16 +405,30 @@ async function ingestDeals(dealType: "bulk" | "block"): Promise<{ rowsWritten: n
         });
       written += 1;
     }
-    await logIngestion({ source, tradeDate: today, status: "ok", rowsWritten: written });
+    await logIngestion({
+      source,
+      tradeDate: today,
+      status: "ok",
+      rowsWritten: written,
+    });
     infoLog("deals ingested", { dealType, rowsParsed: rows.length, written });
     return { rowsWritten: written };
   } catch (err) {
     if (err instanceof NseNotFoundError) {
-      await logIngestion({ source, tradeDate: today, status: "no_trading_day" });
+      await logIngestion({
+        source,
+        tradeDate: today,
+        status: "no_trading_day",
+      });
       return { rowsWritten: 0 };
     }
     const message = err instanceof Error ? err.message : String(err);
-    await logIngestion({ source, tradeDate: today, status: "failed", error: message });
+    await logIngestion({
+      source,
+      tradeDate: today,
+      status: "failed",
+      error: message,
+    });
     warningLog("deals ingest failed", { dealType, error: message });
     throw err;
   }

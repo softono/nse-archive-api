@@ -27,7 +27,9 @@ export function parseIndexCloseCsv(csvText: string): IndexCloseRow[] {
   const iPctChange = idx("CHANGE(%)");
 
   if (iName < 0 || iClose < 0) {
-    throw new Error("ind_close_all CSV missing expected columns — header may have changed");
+    throw new Error(
+      "ind_close_all CSV missing expected columns — header may have changed",
+    );
   }
 
   const out: IndexCloseRow[] = [];

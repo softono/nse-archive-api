@@ -51,7 +51,9 @@ export function parseDealsCsv(csvText: string): DealRow[] {
   const iRemarks = idx("REMARKS");
 
   if (iDate < 0 || iSymbol < 0 || iClient < 0 || iQty < 0 || iPrice < 0) {
-    throw new Error("Deals CSV missing expected columns — header may have changed");
+    throw new Error(
+      "Deals CSV missing expected columns — header may have changed",
+    );
   }
 
   const out: DealRow[] = [];
@@ -66,7 +68,10 @@ export function parseDealsCsv(csvText: string): DealRow[] {
       buySell: cols[iBuySell],
       quantity: Number(cols[iQty]),
       price: Number(cols[iPrice]),
-      remarks: iRemarks >= 0 && cols[iRemarks] && cols[iRemarks] !== "-" ? cols[iRemarks] : undefined,
+      remarks:
+        iRemarks >= 0 && cols[iRemarks] && cols[iRemarks] !== "-"
+          ? cols[iRemarks]
+          : undefined,
     });
   }
   return out;

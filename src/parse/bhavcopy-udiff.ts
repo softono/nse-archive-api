@@ -18,7 +18,9 @@ export interface UdiffRow {
 // HghPric,LwPric,ClsPric,LastPric,PrvsClsgPric,TtlTradgVol,TtlTrfVal,TtlNbOfTxsExctd,...
 export function parseUdiffZip(zipBuffer: Buffer): UdiffRow[] {
   const zip = new AdmZip(zipBuffer);
-  const entry = zip.getEntries().find((e) => e.entryName.toLowerCase().endsWith(".csv"));
+  const entry = zip
+    .getEntries()
+    .find((e) => e.entryName.toLowerCase().endsWith(".csv"));
   if (!entry) throw new Error("UDiFF zip contained no CSV entry");
   return parseUdiffCsv(entry.getData().toString("utf-8"));
 }
@@ -41,7 +43,9 @@ export function parseUdiffCsv(csvText: string): UdiffRow[] {
   const iTrades = idx("TTLNBOFTXSEXCTD");
 
   if (iSymbol < 0 || iOpen < 0 || iHigh < 0 || iLow < 0 || iClose < 0) {
-    throw new Error("UDiFF CSV missing expected OHLC columns — header may have changed");
+    throw new Error(
+      "UDiFF CSV missing expected OHLC columns — header may have changed",
+    );
   }
 
   const out: UdiffRow[] = [];
@@ -55,10 +59,12 @@ export function parseUdiffCsv(csvText: string): UdiffRow[] {
       high: Number(cols[iHigh]),
       low: Number(cols[iLow]),
       close: Number(cols[iClose]),
-      prevClose: iPrevClose >= 0 ? Number(cols[iPrevClose]) || undefined : undefined,
+      prevClose:
+        iPrevClose >= 0 ? Number(cols[iPrevClose]) || undefined : undefined,
       volume: Number(cols[iVolume]) || 0,
       tradedValue: iValue >= 0 ? Number(cols[iValue]) || undefined : undefined,
-      tradesCount: iTrades >= 0 ? Number(cols[iTrades]) || undefined : undefined,
+      tradesCount:
+        iTrades >= 0 ? Number(cols[iTrades]) || undefined : undefined,
     });
   }
   return out;

@@ -1,11 +1,13 @@
 import {
   bigint,
   bigserial,
+  boolean,
   date,
   index,
   integer,
   numeric,
   pgTable,
+  serial,
   text,
   timestamp,
   unique,
@@ -32,7 +34,11 @@ export const dailyCandles = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [
-    unique("daily_candles_symbol_series_date_uq").on(t.symbol, t.series, t.tradeDate),
+    unique("daily_candles_symbol_series_date_uq").on(
+      t.symbol,
+      t.series,
+      t.tradeDate,
+    ),
     index("daily_candles_symbol_date_idx").on(t.symbol, t.tradeDate),
   ],
 );
@@ -52,7 +58,9 @@ export const indexDailyClose = pgTable(
     pctChange: numeric("pct_change", { precision: 6, scale: 2 }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
-  (t) => [unique("index_daily_close_name_date_uq").on(t.indexName, t.tradeDate)],
+  (t) => [
+    unique("index_daily_close_name_date_uq").on(t.indexName, t.tradeDate),
+  ],
 );
 
 export const foDailyCandles = pgTable(
@@ -121,7 +129,11 @@ export const participantActivity = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [
-    unique("participant_activity_date_metric_client_uq").on(t.tradeDate, t.metric, t.clientType),
+    unique("participant_activity_date_metric_client_uq").on(
+      t.tradeDate,
+      t.metric,
+      t.clientType,
+    ),
   ],
 );
 
@@ -172,6 +184,42 @@ export const ingestionLog = pgTable(
   (t) => [unique("ingestion_log_source_date_uq").on(t.source, t.tradeDate)],
 );
 
+export const securities = pgTable(
+  "securities",
+  {
+    id: serial("id").primaryKey(),
+    symbol: text("symbol").notNull(),
+    exchange: text("exchange").notNull().default("NSE"),
+    isin: text("isin"),
+    providerToken: text("provider_token"),
+    series: text("series"),
+    name: text("name"),
+    sector: text("sector"),
+    industry: text("industry"),
+    lotSize: integer("lot_size"),
+    priceBandPct: numeric("price_band_pct", { precision: 5, scale: 2 }),
+    surveillance: text("surveillance"),
+    listedOn: date("listed_on"),
+    delistedOn: date("delisted_on"),
+    isActive: boolean("is_active").default(true),
+    isPrimary: boolean("is_primary").default(true),
+    updatedAt: timestamp("updated_at").defaultNow(),
+    isQuarantined: boolean("is_quarantined").default(false),
+    quarantineReason: text("quarantine_reason"),
+    quarantinedAt: timestamp("quarantined_at"),
+  },
+  (t) => [
+    unique("securities_symbol_exchange_series_uq").on(
+      t.symbol,
+      t.exchange,
+      t.series,
+    ),
+    index("securities_symbol_idx").on(t.symbol),
+    index("securities_sector_idx").on(t.sector),
+    index("securities_industry_idx").on(t.industry),
+  ],
+);
+
 export type DailyCandle = typeof dailyCandles.$inferSelect;
 export type NewDailyCandle = typeof dailyCandles.$inferInsert;
 export type IndexDailyClose = typeof indexDailyClose.$inferSelect;
@@ -184,3 +232,5 @@ export type ParticipantActivity = typeof participantActivity.$inferSelect;
 export type NewParticipantActivity = typeof participantActivity.$inferInsert;
 export type Deal = typeof deals.$inferSelect;
 export type NewDeal = typeof deals.$inferInsert;
+export type Security = typeof securities.$inferSelect;
+export type NewSecurity = typeof securities.$inferInsert;

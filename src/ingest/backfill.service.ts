@@ -19,7 +19,10 @@ function addDays(dateStr: string, delta: number): string {
 // for "this day is done" — sources added after the original equity/index backfill already
 // completed (F&O, participant OI/volume) need their own days processed even on days already
 // marked 'ok' for nse_sec_bhavdata_full.
-const BACKFILL_SOURCES: { source: string; ingest: (tradeDate: string) => Promise<unknown> }[] = [
+const BACKFILL_SOURCES: {
+  source: string;
+  ingest: (tradeDate: string) => Promise<unknown>;
+}[] = [
   { source: "nse_sec_bhavdata_full", ingest: ingestDailyCandles },
   { source: "nse_index_close", ingest: ingestDailyIndexClose },
   { source: "nse_fo_udiff", ingest: ingestDailyFoCandles },
@@ -34,7 +37,9 @@ const BACKFILL_SOURCES: { source: string; ingest: (tradeDate: string) => Promise
  * decision, this only reaches BACKFILL_START_DATE (2024-onward — the UDiFF-era archive); the
  * pre-2024 legacy bhavcopy format is explicitly out of scope for v1. Bulk/block deals are
  * deliberately not in BACKFILL_SOURCES — NSE publishes no per-date archive for them. */
-export async function runBackfill(startDate = config.BACKFILL_START_DATE): Promise<void> {
+export async function runBackfill(
+  startDate = config.BACKFILL_START_DATE,
+): Promise<void> {
   let cursor = new Date().toISOString().slice(0, 10);
   let daysProcessed = 0;
   let daysSkipped = 0;

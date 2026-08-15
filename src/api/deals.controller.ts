@@ -5,7 +5,9 @@ import { deals } from "@/db/schema";
 
 export async function getDeals(req: Request, res: Response): Promise<void> {
   const dealType = req.query.dealType ? String(req.query.dealType) : undefined;
-  const symbol = req.query.symbol ? String(req.query.symbol).toUpperCase() : undefined;
+  const symbol = req.query.symbol
+    ? String(req.query.symbol).toUpperCase()
+    : undefined;
   const from = String(req.query.from ?? "");
   const to = String(req.query.to ?? "");
 

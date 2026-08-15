@@ -2,11 +2,19 @@ import { eq, and } from "drizzle-orm";
 import db from "@/lib/db";
 import { ingestionLog } from "@/db/schema";
 
-export async function getLoggedStatus(source: string, tradeDate: string): Promise<string | null> {
+export async function getLoggedStatus(
+  source: string,
+  tradeDate: string,
+): Promise<string | null> {
   const [row] = await db
     .select({ status: ingestionLog.status })
     .from(ingestionLog)
-    .where(and(eq(ingestionLog.source, source), eq(ingestionLog.tradeDate, tradeDate)))
+    .where(
+      and(
+        eq(ingestionLog.source, source),
+        eq(ingestionLog.tradeDate, tradeDate),
+      ),
+    )
     .limit(1);
   return row?.status ?? null;
 }

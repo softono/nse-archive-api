@@ -10,7 +10,9 @@ const redis: Redis | null =
     ? new Redis(config.REDIS_URL, { maxRetriesPerRequest: 2 })
     : null;
 
-redis?.on("error", (err) => warningLog("redis connection error", { error: err.message }));
+redis?.on("error", (err) =>
+  warningLog("redis connection error", { error: err.message }),
+);
 
 export async function cacheGet<T>(key: string): Promise<T | null> {
   if (!redis) return null;
@@ -18,7 +20,11 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
   return raw ? (JSON.parse(raw) as T) : null;
 }
 
-export async function cacheSet(key: string, value: unknown, ttlSeconds: number): Promise<void> {
+export async function cacheSet(
+  key: string,
+  value: unknown,
+  ttlSeconds: number,
+): Promise<void> {
   if (!redis) return;
   await redis.set(key, JSON.stringify(value), "EX", ttlSeconds);
 }

@@ -19,14 +19,20 @@ export class NseNotFoundError extends Error {
   }
 }
 
-export async function fetchNseArchive(url: string, maxRetries = 3): Promise<Buffer> {
+export async function fetchNseArchive(
+  url: string,
+  maxRetries = 3,
+): Promise<Buffer> {
   let attempt = 0;
   let lastErr: unknown;
 
   while (attempt < maxRetries) {
     await rateLimit();
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), config.NSE_FETCH_TIMEOUT_MS);
+    const timer = setTimeout(
+      () => controller.abort(),
+      config.NSE_FETCH_TIMEOUT_MS,
+    );
     try {
       const res = await fetch(url, {
         signal: controller.signal,
@@ -35,7 +41,8 @@ export async function fetchNseArchive(url: string, maxRetries = 3): Promise<Buff
       clearTimeout(timer);
 
       if (res.status === 404) throw new NseNotFoundError(url);
-      if (!res.ok) throw new Error(`NSE fetch failed: HTTP ${res.status} for ${url}`);
+      if (!res.ok)
+        throw new Error(`NSE fetch failed: HTTP ${res.status} for ${url}`);
 
       return Buffer.from(await res.arrayBuffer());
     } catch (err) {
@@ -55,5 +62,7 @@ export async function fetchNseArchive(url: string, maxRetries = 3): Promise<Buff
       }
     }
   }
-  throw lastErr instanceof Error ? lastErr : new Error(`NSE fetch failed for ${url}`);
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error(`NSE fetch failed for ${url}`);
 }

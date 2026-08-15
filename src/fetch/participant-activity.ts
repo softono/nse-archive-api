@@ -22,7 +22,10 @@ export async function fetchParticipantOi(
     ext: "csv",
     data: buf,
   });
-  return { rows: parseParticipantActivityCsv(buf.toString("utf-8")), archivedPath };
+  return {
+    rows: parseParticipantActivityCsv(buf.toString("utf-8")),
+    archivedPath,
+  };
 }
 
 /** Participant-wise trading volume — same file shape and availability as participant OI. */
@@ -37,5 +40,8 @@ export async function fetchParticipantVolume(
     ext: "csv",
     data: buf,
   });
-  return { rows: parseParticipantActivityCsv(buf.toString("utf-8")), archivedPath };
+  return {
+    rows: parseParticipantActivityCsv(buf.toString("utf-8")),
+    archivedPath,
+  };
 }

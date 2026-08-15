@@ -20,7 +20,9 @@ export interface ParticipantActivityRow {
 // then a header row, then one row per client type (Client, DII, FII, Pro, TOTAL). Column headers
 // carry inconsistent trailing whitespace in the live file (e.g. "Future Stock Short       "), so
 // headers are trimmed before matching.
-export function parseParticipantActivityCsv(csvText: string): ParticipantActivityRow[] {
+export function parseParticipantActivityCsv(
+  csvText: string,
+): ParticipantActivityRow[] {
   const lines = csvText.trim().split(/\r?\n/);
   if (lines.length < 3) return [];
   const header = lines[1].split(",").map((h) => h.trim().toUpperCase());
@@ -43,11 +45,15 @@ export function parseParticipantActivityCsv(csvText: string): ParticipantActivit
   const iTotalShort = idx("TOTAL SHORT CONTRACTS");
 
   if (iClientType < 0) {
-    throw new Error("Participant activity CSV missing 'Client Type' column — header may have changed");
+    throw new Error(
+      "Participant activity CSV missing 'Client Type' column — header may have changed",
+    );
   }
 
   const num = (cols: string[], i: number) =>
-    i >= 0 && cols[i] !== undefined && cols[i] !== "" ? Number(cols[i]) : undefined;
+    i >= 0 && cols[i] !== undefined && cols[i] !== ""
+      ? Number(cols[i])
+      : undefined;
 
   const out: ParticipantActivityRow[] = [];
   for (let i = 2; i < lines.length; i++) {

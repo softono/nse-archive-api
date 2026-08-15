@@ -1,6 +1,9 @@
 import { fetchNseArchive } from "@/fetch/nse-client";
 import { archiveRawFile } from "@/lib/raw-archive";
-import { parseSecBhavdataCsv, type SecBhavdataRow } from "@/parse/sec-bhavdata-full";
+import {
+  parseSecBhavdataCsv,
+  type SecBhavdataRow,
+} from "@/parse/sec-bhavdata-full";
 import { parseUdiffZip, type UdiffRow } from "@/parse/bhavcopy-udiff";
 
 function ddmmyyyy(dateStr: string): string {

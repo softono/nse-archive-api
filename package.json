@@ -7,6 +7,7 @@
     "dev": "tsx watch --env-file=.env src/server.ts",
     "start": "tsx --env-file=.env src/server.ts",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file=.env node_modules/drizzle-kit/bin.cjs migrate",
     "backfill": "tsx --env-file=.env src/scripts/run-backfill.ts",
@@ -32,6 +33,7 @@
     "drizzle-kit": "^0.31.10",
     "prettier": "^3.9.4",
     "tsx": "^4.22.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   }
 }

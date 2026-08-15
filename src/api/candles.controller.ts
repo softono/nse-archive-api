@@ -47,6 +47,55 @@ export async function getCandles(req: Request, res: Response): Promise<void> {
       low: Number(r.low),
       close: Number(r.close),
       volume: r.volume,
+      tradedValue: r.tradedValue != null ? Number(r.tradedValue) : null,
+      tradesCount: r.tradesCount ?? null,
+      deliveryQty: r.deliveryQty ?? null,
+      deliveryPct: r.deliveryPct != null ? Number(r.deliveryPct) : null,
+    })),
+  };
+
+  await cacheSet(cacheKey, payload, CACHE_TTL_SECONDS);
+  res.json(payload);
+}
+
+/** Whole-market EOD slice for one trade date — the bulk equivalent of `getCandles` above, built
+ * so a consumer that used to fetch NSE's single combined bhavcopy CSV for a day (all symbols in
+ * one request) has an equivalent single request here instead of looping `getCandles` per symbol. */
+export async function getCandlesForDay(req: Request, res: Response): Promise<void> {
+  const date = String(req.query.date ?? "");
+  const series = String(req.query.series ?? "EQ").toUpperCase();
+
+  if (!date) {
+    res.status(400).json({ error: "date is required" });
+    return;
+  }
+
+  const cacheKey = `candles:day:${series}:${date}`;
+  const cached = await cacheGet(cacheKey);
+  if (cached) {
+    res.json(cached);
+    return;
+  }
+
+  const rows = await db
+    .select()
+    .from(dailyCandles)
+    .where(and(eq(dailyCandles.series, series), eq(dailyCandles.tradeDate, date)))
+    .orderBy(asc(dailyCandles.symbol));
+
+  const payload = {
+    date,
+    series,
+    candles: rows.map((r) => ({
+      symbol: r.symbol,
+      open: Number(r.open),
+      high: Number(r.high),
+      low: Number(r.low),
+      close: Number(r.close),
+      volume: r.volume,
+      tradedValue: r.tradedValue != null ? Number(r.tradedValue) : null,
+      tradesCount: r.tradesCount ?? null,
+      deliveryQty: r.deliveryQty ?? null,
       deliveryPct: r.deliveryPct != null ? Number(r.deliveryPct) : null,
     })),
   };

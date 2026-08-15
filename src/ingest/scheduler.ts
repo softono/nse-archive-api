@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import { ingestYesterday } from "@/ingest/daily.service";
+import { ingestSurveillance } from "@/ingest/surveillance.service";
 import { infoLog, errorLog } from "@/lib/logger";
 
 /** node-cron, in-process — per the PRD's decision, no BullMQ/Redis queue for scheduling (Redis is
@@ -18,5 +19,25 @@ export function startScheduler(): void {
     },
     { timezone: "Asia/Kolkata" },
   );
-  infoLog("scheduler started", { schedule: "0 19 * * 1-5 Asia/Kolkata" });
+
+  // ASM/GSM changes daily and is bot-mitigation-fronted (unlike the static archive files the
+  // 19:00 job above pulls) — run it separately so its cookie-jar/warm-up failures never block the
+  // static-file ingest.
+  cron.schedule(
+    "0 7 * * 1-5",
+    () => {
+      infoLog("surveillance ingest cron fired");
+      ingestSurveillance().catch((err) =>
+        errorLog("surveillance ingest cron run failed", {
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    },
+    { timezone: "Asia/Kolkata" },
+  );
+
+  infoLog("scheduler started", {
+    dailyIngest: "0 19 * * 1-5 Asia/Kolkata",
+    surveillanceIngest: "0 7 * * 1-5 Asia/Kolkata",
+  });
 }

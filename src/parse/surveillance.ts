@@ -1,9 +1,17 @@
 // ASM/GSM parsing helpers — ported from admin_backend's nse-scrape.provider.ts (this service now
 // owns the surveillance scrape; the trading app reads the result back via GET /securities).
-export function extractSurveillanceRows(payload: unknown): Array<Record<string, string>> {
+export function extractSurveillanceRows(
+  payload: unknown,
+): Array<Record<string, string>> {
   if (Array.isArray(payload)) return payload as Array<Record<string, string>>;
-  if (payload && typeof payload === "object" && Array.isArray((payload as Record<string, unknown>).data)) {
-    return (payload as Record<string, unknown>).data as Array<Record<string, string>>;
+  if (
+    payload &&
+    typeof payload === "object" &&
+    Array.isArray((payload as Record<string, unknown>).data)
+  ) {
+    return (payload as Record<string, unknown>).data as Array<
+      Record<string, string>
+    >;
   }
   return [];
 }
@@ -13,26 +21,41 @@ export function extractSurveillanceRows(payload: unknown): Array<Record<string, 
  * unlike GSM's flat array, so it needs its own extractor that preserves which bucket a row came
  * from. Falls back to the flat/`.data` shapes so an API change to either form still parses.
  */
-export function extractAsmRows(payload: unknown): Array<{ bucket: string; row: Record<string, string> }> {
+export function extractAsmRows(
+  payload: unknown,
+): Array<{ bucket: string; row: Record<string, string> }> {
   const flat = extractSurveillanceRows(payload);
   if (flat.length > 0) return flat.map((row) => ({ bucket: "", row }));
 
   if (!payload || typeof payload !== "object") return [];
   const out: Array<{ bucket: string; row: Record<string, string> }> = [];
-  for (const [bucket, value] of Object.entries(payload as Record<string, unknown>)) {
+  for (const [bucket, value] of Object.entries(
+    payload as Record<string, unknown>,
+  )) {
     for (const row of extractSurveillanceRows(value)) out.push({ bucket, row });
   }
   return out;
 }
 
-const ROMAN_DIGITS: Record<string, number> = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
+const ROMAN_DIGITS: Record<string, number> = {
+  I: 1,
+  V: 5,
+  X: 10,
+  L: 50,
+  C: 100,
+  D: 500,
+  M: 1000,
+};
 
 /** "Stage II" -> 2, "Stage 3" -> 3, "LXII" -> 62, unparseable -> null. */
 export function romanOrArabicToNumber(text: string): number | null {
   const arabic = text.match(/\d+/)?.[0];
   if (arabic) return Number(arabic);
 
-  const roman = text.toUpperCase().match(/[IVXLCDM]+/g)?.pop();
+  const roman = text
+    .toUpperCase()
+    .match(/[IVXLCDM]+/g)
+    ?.pop();
   if (!roman) return null;
 
   let total = 0;
@@ -48,7 +71,10 @@ export function romanOrArabicToNumber(text: string): number | null {
  * symbol -> stage map. Values follow `securities.surveillance`'s convention:
  * null | ASM_ST | ASM_LT1 | GSM_1..6 | ESM. GSM wins over ASM when a symbol appears in both — it
  * is the stricter regime. */
-export function mergeSurveillanceLists(lists: { asm: unknown; gsm: unknown }): Map<string, string> {
+export function mergeSurveillanceLists(lists: {
+  asm: unknown;
+  gsm: unknown;
+}): Map<string, string> {
   const bySymbol = new Map<string, string>();
 
   // ASM's stage lives in `asmSurvIndicator` as a roman numeral ("Stage I"/"Stage II"); tenure
@@ -57,7 +83,10 @@ export function mergeSurveillanceLists(lists: { asm: unknown; gsm: unknown }): M
     const symbol = row.symbol || row.Symbol;
     if (!symbol) continue;
     const desc = `${row.survDesc ?? ""} ${row.survCode ?? ""}`.toUpperCase();
-    const isLongTerm = bucket === "longterm" || desc.includes("LONG TERM") || desc.includes("LTASM");
+    const isLongTerm =
+      bucket === "longterm" ||
+      desc.includes("LONG TERM") ||
+      desc.includes("LTASM");
     const stageNum = romanOrArabicToNumber(row.asmSurvIndicator ?? "") ?? 1;
     bySymbol.set(symbol, isLongTerm ? `ASM_LT${stageNum}` : "ASM_ST");
   }

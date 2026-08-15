@@ -13,7 +13,9 @@ import { errorLog } from "@/lib/logger";
 // (no DB cache/table — the caller decides how often to poll) — a 502 here means NSE itself is
 // unreachable/blocking, not a bug in this service. Logged, not retried indefinitely.
 function upstreamFailed(res: Response, source: string, err: unknown): void {
-  errorLog(`${source} proxy failed`, { error: err instanceof Error ? err.message : String(err) });
+  errorLog(`${source} proxy failed`, {
+    error: err instanceof Error ? err.message : String(err),
+  });
   res.status(502).json({ error: `${source} upstream fetch failed` });
 }
 
@@ -25,7 +27,10 @@ export async function getHolidays(_req: Request, res: Response): Promise<void> {
   }
 }
 
-export async function getCorporateCalendar(_req: Request, res: Response): Promise<void> {
+export async function getCorporateCalendar(
+  _req: Request,
+  res: Response,
+): Promise<void> {
   try {
     res.json({ events: await fetchCorporateCalendar() });
   } catch (err) {
@@ -33,7 +38,10 @@ export async function getCorporateCalendar(_req: Request, res: Response): Promis
   }
 }
 
-export async function getAnnouncements(_req: Request, res: Response): Promise<void> {
+export async function getAnnouncements(
+  _req: Request,
+  res: Response,
+): Promise<void> {
   try {
     res.json({ announcements: await fetchCorporateAnnouncements() });
   } catch (err) {
@@ -41,7 +49,10 @@ export async function getAnnouncements(_req: Request, res: Response): Promise<vo
   }
 }
 
-export async function getFiiDiiFlows(_req: Request, res: Response): Promise<void> {
+export async function getFiiDiiFlows(
+  _req: Request,
+  res: Response,
+): Promise<void> {
   try {
     res.json({ flows: await fetchFiiDiiFlows() });
   } catch (err) {
@@ -49,7 +60,10 @@ export async function getFiiDiiFlows(_req: Request, res: Response): Promise<void
   }
 }
 
-export async function getInsiderDisclosures(req: Request, res: Response): Promise<void> {
+export async function getInsiderDisclosures(
+  req: Request,
+  res: Response,
+): Promise<void> {
   const kind = String(req.query.kind ?? "");
   if (kind !== "pit" && kind !== "sast") {
     res.status(400).json({ error: "kind must be 'pit' or 'sast'" });
@@ -62,7 +76,10 @@ export async function getInsiderDisclosures(req: Request, res: Response): Promis
   }
 }
 
-export async function getCorporateActions(req: Request, res: Response): Promise<void> {
+export async function getCorporateActions(
+  req: Request,
+  res: Response,
+): Promise<void> {
   const symbol = String(req.query.symbol ?? "").toUpperCase();
   if (!symbol) {
     res.status(400).json({ error: "symbol is required" });

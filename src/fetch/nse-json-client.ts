@@ -37,9 +37,15 @@ function mergeSetCookie(setCookieHeader: string | null): void {
     .join("; ");
 }
 
-async function fetchWithTimeout(url: string, init: RequestInit = {}): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit = {},
+): Promise<Response> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), config.NSE_FETCH_TIMEOUT_MS);
+  const timer = setTimeout(
+    () => controller.abort(),
+    config.NSE_FETCH_TIMEOUT_MS,
+  );
   try {
     return await fetch(url, {
       ...init,
@@ -63,19 +69,28 @@ export async function warmUpCookies(): Promise<boolean> {
   try {
     const res = await fetchWithTimeout(NSE_ROOT);
     mergeSetCookie(res.headers.get("set-cookie"));
-    infoLog("nse cookie warm-up done", { status: res.status, gotCookies: Boolean(cookieJar) });
+    infoLog("nse cookie warm-up done", {
+      status: res.status,
+      gotCookies: Boolean(cookieJar),
+    });
     return res.ok;
   } catch (err) {
-    warningLog("nse cookie warm-up failed — known blocker, continuing without it", {
-      error: err instanceof Error ? err.message : String(err),
-    });
+    warningLog(
+      "nse cookie warm-up failed — known blocker, continuing without it",
+      {
+        error: err instanceof Error ? err.message : String(err),
+      },
+    );
     return false;
   }
 }
 
 /** Fetch a `www.nseindia.com` JSON API path (e.g. "/api/holiday-master?type=trading"), warming up
  * and refreshing the cookie jar on 401/403 automatically. */
-export async function fetchNseJson(path: string, retriedAfterRefresh = false): Promise<Response> {
+export async function fetchNseJson(
+  path: string,
+  retriedAfterRefresh = false,
+): Promise<Response> {
   if (!cookieJar) await warmUpCookies();
   const url = path.startsWith("http") ? path : `${NSE_ROOT}${path}`;
   const res = await fetchWithTimeout(url);

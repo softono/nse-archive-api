@@ -61,7 +61,10 @@ export async function getCandles(req: Request, res: Response): Promise<void> {
 /** Whole-market EOD slice for one trade date — the bulk equivalent of `getCandles` above, built
  * so a consumer that used to fetch NSE's single combined bhavcopy CSV for a day (all symbols in
  * one request) has an equivalent single request here instead of looping `getCandles` per symbol. */
-export async function getCandlesForDay(req: Request, res: Response): Promise<void> {
+export async function getCandlesForDay(
+  req: Request,
+  res: Response,
+): Promise<void> {
   const date = String(req.query.date ?? "");
   const series = String(req.query.series ?? "EQ").toUpperCase();
 
@@ -80,7 +83,9 @@ export async function getCandlesForDay(req: Request, res: Response): Promise<voi
   const rows = await db
     .select()
     .from(dailyCandles)
-    .where(and(eq(dailyCandles.series, series), eq(dailyCandles.tradeDate, date)))
+    .where(
+      and(eq(dailyCandles.series, series), eq(dailyCandles.tradeDate, date)),
+    )
     .orderBy(asc(dailyCandles.symbol));
 
   const payload = {

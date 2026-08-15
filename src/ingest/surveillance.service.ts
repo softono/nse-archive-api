@@ -16,7 +16,12 @@ export async function ingestSurveillance(): Promise<{ rowsWritten: number }> {
   const today = new Date().toISOString().slice(0, 10);
   const lists = await fetchSurveillanceLists();
   if (!lists) {
-    await logIngestion({ source: "nse_surveillance_lists", tradeDate: today, status: "failed", error: "fetch failed" });
+    await logIngestion({
+      source: "nse_surveillance_lists",
+      tradeDate: today,
+      status: "failed",
+      error: "fetch failed",
+    });
     return { rowsWritten: 0 };
   }
 
@@ -30,7 +35,9 @@ export async function ingestSurveillance(): Promise<{ rowsWritten: number }> {
     const res = await db
       .update(securities)
       .set({ surveillance: stage, updatedAt: new Date() })
-      .where(and(eq(securities.exchange, "NSE"), eq(securities.symbol, symbol)));
+      .where(
+        and(eq(securities.exchange, "NSE"), eq(securities.symbol, symbol)),
+      );
     written += (res as unknown as { count?: number }).count ?? 0;
   }
 
@@ -49,7 +56,16 @@ export async function ingestSurveillance(): Promise<{ rowsWritten: number }> {
     );
 
   const rowsCleared = (cleared as unknown as { count?: number }).count ?? 0;
-  infoLog("surveillance lists persisted", { symbolsListed: bySymbol.size, rowsWritten: written, rowsCleared });
-  await logIngestion({ source: "nse_surveillance_lists", tradeDate: today, status: "ok", rowsWritten: written });
+  infoLog("surveillance lists persisted", {
+    symbolsListed: bySymbol.size,
+    rowsWritten: written,
+    rowsCleared,
+  });
+  await logIngestion({
+    source: "nse_surveillance_lists",
+    tradeDate: today,
+    status: "ok",
+    rowsWritten: written,
+  });
   return { rowsWritten: written };
 }

@@ -40,12 +40,10 @@ function mergeSetCookie(setCookieHeader: string | null): void {
 async function fetchWithTimeout(
   url: string,
   init: RequestInit = {},
+  timeoutMs: number = config.NSE_FETCH_TIMEOUT_MS,
 ): Promise<Response> {
   const controller = new AbortController();
-  const timer = setTimeout(
-    () => controller.abort(),
-    config.NSE_FETCH_TIMEOUT_MS,
-  );
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(url, {
       ...init,
@@ -86,18 +84,34 @@ export async function warmUpCookies(): Promise<boolean> {
 }
 
 /** Fetch a `www.nseindia.com` JSON API path (e.g. "/api/holiday-master?type=trading"), warming up
- * and refreshing the cookie jar on 401/403 automatically. */
+ * and refreshing the cookie jar on 401/403 automatically. Retries once, with a short backoff, on
+ * fast-failing network errors (DNS/connection reset) — but NOT on our own AbortError timeout,
+ * since that's already burned the full NSE_FETCH_TIMEOUT_MS budget and the caller (trading's
+ * nse-archive-client) has its own queue-level retry with backoff for the slow-upstream case. */
 export async function fetchNseJson(
   path: string,
   retriedAfterRefresh = false,
+  retriedAfterNetworkError = false,
 ): Promise<Response> {
   if (!cookieJar) await warmUpCookies();
   const url = path.startsWith("http") ? path : `${NSE_ROOT}${path}`;
-  const res = await fetchWithTimeout(url);
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(url, {}, config.NSE_JSON_FETCH_TIMEOUT_MS);
+  } catch (err) {
+    const isAbort = err instanceof Error && err.name === "AbortError";
+    if (isAbort || retriedAfterNetworkError) throw err;
+    warningLog("nse json fetch failed with a network error, retrying once", {
+      path,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    await new Promise((r) => setTimeout(r, 1000));
+    return fetchNseJson(path, retriedAfterRefresh, true);
+  }
   if ((res.status === 401 || res.status === 403) && !retriedAfterRefresh) {
     cookieJar = "";
     await warmUpCookies();
-    return fetchNseJson(path, true);
+    return fetchNseJson(path, true, retriedAfterNetworkError);
   }
   return res;
 }

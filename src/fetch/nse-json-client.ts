@@ -100,7 +100,17 @@ export async function fetchNseJson(
     res = await fetchWithTimeout(url, {}, config.NSE_JSON_FETCH_TIMEOUT_MS);
   } catch (err) {
     const isAbort = err instanceof Error && err.name === "AbortError";
-    if (isAbort || retriedAfterNetworkError) throw err;
+    if (isAbort) {
+      // NSE can silently stall/blackhole a request tied to a now-stale cookie session instead of
+      // cleanly rejecting with 401/403 — the only case the retry-after-refresh branch below
+      // reacts to. Without this, a single poisoned cookie jar keeps timing out every subsequent
+      // call forever, since a hung request never produces a status code to check. Clearing it
+      // here doesn't help *this* attempt (already fails, letting the caller's own retry/backoff
+      // handle that), but the next call gets a fresh warm-up instead of reusing the dead session.
+      cookieJar = "";
+      throw err;
+    }
+    if (retriedAfterNetworkError) throw err;
     warningLog("nse json fetch failed with a network error, retrying once", {
       path,
       error: err instanceof Error ? err.message : String(err),

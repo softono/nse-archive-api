@@ -67,11 +67,14 @@ export async function fetchFiiDiiFlows(): Promise<unknown[]> {
   return Array.isArray(json) ? json : [];
 }
 
-/** SEBI PIT (insider) + SAST disclosures, board-wide. */
+/** SEBI PIT (insider) + SAST (Regulation 29 substantial-acquisition) disclosures, board-wide.
+ * NSE's SAST endpoint is `corporate-sast-reg29`, not `corporate-sast` (that path 404s — verified
+ * against the live site's own corporate-filings.js bundle, which calls `/api/corporate-sast-reg29`
+ * for the board-wide SAST tab). */
 export async function fetchInsiderDisclosures(
   kind: "pit" | "sast",
 ): Promise<unknown[]> {
-  const endpoint = kind === "pit" ? "corporates-pit" : "corporate-sast";
+  const endpoint = kind === "pit" ? "corporates-pit" : "corporate-sast-reg29";
   const json = await fetchJsonAndArchive(
     `nse_${endpoint.replace(/-/g, "_")}`,
     `/api/${endpoint}?index=equities`,

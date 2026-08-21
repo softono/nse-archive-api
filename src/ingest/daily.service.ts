@@ -1,4 +1,5 @@
 import db from "@/lib/db";
+import { sql } from "drizzle-orm";
 import {
   dailyCandles,
   indexDailyClose,
@@ -437,20 +438,87 @@ async function ingestDeals(
 export const ingestDailyBulkDeals = () => ingestDeals("bulk");
 export const ingestDailyBlockDeals = () => ingestDeals("block");
 
-/** Steady-state job: fetch yesterday's file. NSE typically publishes ~18:30 IST, so the scheduler
- * fires after that; "yesterday" from this process's perspective at run time is the trading day
- * being ingested. */
-export async function ingestYesterday(): Promise<void> {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  const tradeDate = d.toISOString().slice(0, 10);
+/** Upper bound on the catch-up walk — a longer outage than this is a backfill job
+ * (scripts/run-backfill.ts), not something the nightly tick should silently grind through. */
+const MAX_CATCHUP_DAYS = 10;
+
+/** `YYYY-MM-DD` for a Date, evaluated in IST rather than UTC. The naive
+ * `d.toISOString().slice(0,10)` this used to rely on is only correct for run times where the UTC
+ * and IST calendar dates happen to agree — it silently returns the previous day for anything
+ * fired between 00:00 and 05:30 IST. */
+function istDate(d: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+/**
+ * Every weekday from the day after the newest stored candle through yesterday (IST), oldest
+ * first — i.e. the days this service still owes admin_backend.
+ *
+ * Why this exists: the 19:00 cron is in-process node-cron on a box with no RTC, so a reboot can
+ * leave the clock jumping under an already-armed timer and the tick silently never fires (this
+ * happened on 2026-08-20, losing 2026-08-19 and 2026-08-20 until they were ingested by hand).
+ * A single-day `ingestYesterday` turns any such miss into a permanent hole, because nothing ever
+ * revisits it. Walking forward from what's actually stored makes the next successful run —
+ * scheduled OR at boot — repair the gap on its own.
+ *
+ * Holidays need no special handling: NSE simply doesn't publish a file, `fetchSecBhavdataFull`
+ * 404s, and `ingestDailyCandles` records 'no_trading_day' without throwing.
+ */
+async function resolveMissingTradeDates(): Promise<string[]> {
+  const [row] = await db
+    .select({ maxDate: sql<string | null>`max(${dailyCandles.tradeDate})` })
+    .from(dailyCandles);
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const lastWanted = istDate(yesterday);
+
+  if (!row?.maxDate) return [lastWanted];
+
+  const out: string[] = [];
+  const cursor = new Date(`${row.maxDate}T00:00:00+05:30`);
+  cursor.setDate(cursor.getDate() + 1);
+  while (out.length < MAX_CATCHUP_DAYS) {
+    const ymd = istDate(cursor);
+    if (ymd > lastWanted) break;
+    const dow = cursor.getDay();
+    if (dow !== 0 && dow !== 6) out.push(ymd);
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  // Already current — still re-run the most recent day so a re-fire refreshes rather than no-ops.
+  return out.length > 0 ? out : [lastWanted];
+}
+
+/** One trading day's full set of daily artefacts. */
+async function ingestOneTradeDate(tradeDate: string): Promise<void> {
   await Promise.allSettled([
     ingestDailyCandles(tradeDate),
     ingestDailyIndexClose(tradeDate),
     ingestDailyFoCandles(tradeDate),
     ingestDailyParticipantOi(tradeDate),
     ingestDailyParticipantVolume(tradeDate),
-    ingestDailyBulkDeals(),
-    ingestDailyBlockDeals(),
   ]);
+}
+
+/** Steady-state job: ingest every trading day still missing, not just yesterday's file. NSE
+ * typically publishes ~18:30 IST, so the scheduler fires after that. See
+ * `resolveMissingTradeDates` for why this catches up rather than assuming exactly one day. */
+export async function ingestYesterday(): Promise<void> {
+  const dates = await resolveMissingTradeDates();
+  infoLog("daily ingest starting", { dates, count: dates.length });
+
+  for (const tradeDate of dates) {
+    await ingestOneTradeDate(tradeDate);
+  }
+
+  // Deals endpoints are "latest snapshot" style with no date parameter — run once per tick, not
+  // once per caught-up day.
+  await Promise.allSettled([ingestDailyBulkDeals(), ingestDailyBlockDeals()]);
+
+  infoLog("daily ingest complete", { dates, count: dates.length });
 }
